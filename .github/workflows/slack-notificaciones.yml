@@ -1,0 +1,45 @@
+name: Notificaciones FisioGlow a Slack
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  notificar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enviar notificacion a Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          REPOSITORY: ${{ github.repository }}
+          COMMIT_URL: ${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          url = os.environ.get("SLACK_WEBHOOK_URL")
+          if not url:
+              raise SystemExit("Falta SLACK_WEBHOOK_URL")
+
+          payload = {
+              "text": (
+                  "🚀 FisioGlow - actualización en GitHub\n"
+                  f"Repositorio: {os.environ['REPOSITORY']}\n"
+                  f"Ver cambios: {os.environ['COMMIT_URL']}"
+              )
+          }
+
+          request = urllib.request.Request(
+              url,
+              data=json.dumps(payload).encode("utf-8"),
+              headers={"Content-Type": "application/json"},
+              method="POST"
+          )
+
+          with urllib.request.urlopen(request, timeout=20) as response:
+              print("Slack HTTP:", response.status)
+          PY
